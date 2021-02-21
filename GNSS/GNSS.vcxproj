@@ -140,11 +140,13 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="comm.cpp" />
+    <ClCompile Include="gnss.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="nmea.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="comm.h" />
+    <ClInclude Include="gnss.h" />
     <ClInclude Include="nmea.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

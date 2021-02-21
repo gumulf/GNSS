@@ -1,10 +1,12 @@
+// TODO Fix error handling, cast error?
+
 #include "comm.h"
 #include<iostream>
 
 
 namespace gnss{
 
-	HANDLE initGps(LPCWSTR portName){
+	HANDLE openPort(LPCWSTR portName){
 		HANDLE hSerial;
 		LPCWSTR port{portName};
 
@@ -76,8 +78,9 @@ namespace gnss{
 		return hSerial;
 	}
 
-
-	int readGps(HANDLE m_hSerial, int m_characters){
+	// TODO Change to return a string instead
+	// TODO Remove std::cout
+	int readPort(HANDLE m_hSerial, int m_characters){
 
 
 		int const buffLen{1};
@@ -102,13 +105,11 @@ namespace gnss{
 
 		std::cout << std::endl;
 
-
-
 		return 1;
 
 	}
 
-	int closeGps(HANDLE m_hSerial){
+	int closePort(HANDLE m_hSerial){
 		CloseHandle(m_hSerial);
 		return 1;
 	}

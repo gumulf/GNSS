@@ -24,12 +24,18 @@
     <ClCompile Include="comm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="gnss.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="comm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="nmea.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="gnss.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

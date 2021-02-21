@@ -1,4 +1,5 @@
 #include "comm.h"
+#include "gnss.h"
 #include "nmea.h"
 
 int main(){
@@ -6,12 +7,12 @@ int main(){
 	// Get connection info
 
 	// Establish connection
-	HANDLE hGps;
-	hGps = gnss::initGps(L"\\\\.\\COM3");
+	HANDLE hGnss;
+	hGnss = gnss::openPort(L"\\\\.\\COM3"); 
 
 
 	// Read data from "GPS"
-	gnss::readGps(hGps, 1000);
+	gnss::readPort(hGnss, 1000);
 
 	// Parse data
 
@@ -21,6 +22,6 @@ int main(){
 
 	// Close connection
 
-	gnss::closeGps(hGps);
+	gnss::closePort(hGnss);
 
 }
