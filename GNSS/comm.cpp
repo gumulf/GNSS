@@ -4,9 +4,9 @@
 
 namespace gnss{
 
-	HANDLE initGps(){
+	HANDLE initGps(LPCWSTR portName){
 		HANDLE hSerial;
-		LPCWSTR port(L"\\\\.\\COM3");
+		LPCWSTR port{portName};
 
 		hSerial = CreateFile(port,
 									GENERIC_READ,

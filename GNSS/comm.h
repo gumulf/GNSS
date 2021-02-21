@@ -12,7 +12,7 @@
 
 namespace gnss{
 
-	HANDLE initGps();
+	HANDLE initGps(LPCWSTR portName);
 	int closeGps(HANDLE m_hSerial);
 	int readGps(HANDLE m_hSerial, int m_characters);
 

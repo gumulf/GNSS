@@ -7,7 +7,7 @@ int main(){
 
 	// Establish connection
 	HANDLE hGps;
-	hGps = gnss::initGps();
+	hGps = gnss::initGps(L"\\\\.\\COM3");
 
 
 	// Read data from "GPS"
