@@ -2,7 +2,18 @@
 #include "gnss.h"
 #include "nmea.h"
 
+#include <iostream>
+
+
 int main(){
+
+	//if(
+	//	gnss::validateChecksum("$GPRMC,010035.000,A,5742.7116,N,01201.2214,E,0.12,25.76,260221,,*36")
+	//	){
+	//	std::cout << "The sentence looks good!\n";
+	//} else{
+	//	std::cout << "Something is wrong with the sentence!\n";
+	//}
 
 	// Get connection info
 

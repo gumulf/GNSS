@@ -3,11 +3,13 @@
 #include <vector>
 #include "gnss.h"
 
+// http://freenmea.net/docs
+
 namespace gnss{
 
-	bool isSentenceValid(std::string sentence);
+	bool validateChecksum(std::string sentence);
 
-	std::vector<std::string> tokenizeSentence(std::string sentence);
+	std::vector<std::string> tokenize(std::string str, char separator);
 
 	// Parser
 
