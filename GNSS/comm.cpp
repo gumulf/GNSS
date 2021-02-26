@@ -1,5 +1,8 @@
 // TODO Fix error handling, cast error?
 
+// Note: Mostly from this document Windows Serial Port Programming, Robertson Bayer, March 30, 2008
+// https://ds.opdenbrouw.nl/micprg/pdf/serial-win.pdf
+
 #include "comm.h"
 #include<iostream>
 
