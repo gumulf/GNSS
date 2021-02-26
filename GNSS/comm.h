@@ -12,7 +12,8 @@
 
 namespace gnss{
 
-	HANDLE openPort(LPCWSTR portName); // TODO Add other parameters to call, such as parity, speed, bits et.c.
+	HANDLE openPort(LPCWSTR portName); // TODO Add other parameters to call, such as parity, data bits, stop bits, baud rates 
+
 	int closePort(HANDLE m_hSerial);
 
 	int readPort(HANDLE m_hSerial, int m_characters);

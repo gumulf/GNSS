@@ -9,6 +9,8 @@ namespace gnss{
 
 		double m_latitude{0.0};   // North-South	(90.0 - -90.0 degrees)
 		double m_longitude{0.0};  // East-West	(180.0 - -180.0 degrees)
+		double m_metersOverMsl{0.0};  // Hight over mean sealevel
+		double m_metersOverEllipsoid{0.0}; // Hight over Ellipsoid
 
 	public:
 
