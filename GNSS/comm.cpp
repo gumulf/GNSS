@@ -112,6 +112,42 @@ namespace gnss{
 
 	}
 
+	std::string readLine(HANDLE m_hSerial){
+
+		DWORD buffLen{1};
+		char buffert{0};
+		DWORD bytesRead{0};
+
+		std::string line{""};
+
+		bool lineRead{false};
+		bool crReceived{false};
+
+		do{
+			if(!ReadFile(m_hSerial, &buffert, buffLen, &bytesRead, NULL)){
+				// TODO Create appropiate error for readerror
+				return "";
+			}
+			if(bytesRead == 1){
+
+				if(!crReceived && buffert == '\r'){
+					crReceived = true;
+				} else if(crReceived && buffert == '\n'){
+					lineRead = true;
+				} else if(crReceived){
+					line.clear();
+					crReceived = false;
+					// TODO Find out if there should be an error thrown here, or something
+				} else{
+					line.push_back(buffert);
+				}
+				
+			}
+		} while(!lineRead);
+
+		return line;
+	}
+
 	int closePort(HANDLE m_hSerial){
 		CloseHandle(m_hSerial);
 		return 1;

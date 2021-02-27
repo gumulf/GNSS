@@ -2,6 +2,7 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include<Windows.h>
+#include<string>
 
 /* 
 *		Handling USB-connection to receiver
@@ -17,5 +18,7 @@ namespace gnss{
 	int closePort(HANDLE m_hSerial);
 
 	int readPort(HANDLE m_hSerial, int m_characters);
+
+	std::string readLine(HANDLE m_hSerial);
 
 }
