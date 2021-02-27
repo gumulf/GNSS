@@ -34,8 +34,28 @@ namespace gnss{
 
 	}
 
-	std::vector<std::string> tokenize(std::string str, char separator){
-		return std::vector<std::string>{""};
+	std::vector<std::string> tokenize(std::string str, std::string separators){
+		
+		std::vector<std::string> tokens;
+
+		size_t start{0}, end{str.find_first_of(separators, start)};
+
+
+		while(end != std::string::npos){
+
+	
+			tokens.push_back(str.substr(start, end - start));
+
+			start = end + 1;
+			end = str.find_first_of(separators, start);
+
+		}
+
+		if(start != str.length()){
+			tokens.push_back(str.substr(start));
+		}
+
+		return tokens;
 
 	}
 
