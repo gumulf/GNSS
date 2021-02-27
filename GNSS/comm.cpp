@@ -23,9 +23,9 @@ namespace gnss{
 
 		if(hSerial == INVALID_HANDLE_VALUE){
 			if(GetLastError() == ERROR_FILE_NOT_FOUND){
-				std::cerr << "The requested port could not be opended!\n" << std::endl;
+				std::cerr << "The requested port could not be opended!" << std::endl;
 			} else{
-				std::cerr << "Some kind of error happened opening file!\n" << std::endl;
+				std::cerr << "Some kind of error happened opening file!" << std::endl;
 			}
 			CloseHandle(hSerial);
 			return INVALID_HANDLE_VALUE;
@@ -36,7 +36,7 @@ namespace gnss{
 		dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
 
 		if(!GetCommState(hSerial, &dcbSerialParams)){
-			std::cerr << "Error getting state!\n" << std::endl;
+			std::cerr << "Error getting state!" << std::endl;
 			CloseHandle(hSerial);
 			return INVALID_HANDLE_VALUE;
 		}
@@ -46,19 +46,8 @@ namespace gnss{
 		dcbSerialParams.StopBits = ONESTOPBIT;
 		dcbSerialParams.Parity = NOPARITY;
 
-		int count{0};
-		while(!SetCommState(hSerial, &dcbSerialParams) && count < 5){
-			std::cerr << "Error setting state! Retrying!\n" << std::endl;
-			++count;
-			Sleep(1000);
-			dcbSerialParams.BaudRate = CBR_4800;
-			dcbSerialParams.ByteSize = 8;
-			dcbSerialParams.StopBits = ONESTOPBIT;
-			dcbSerialParams.Parity = NOPARITY;
-		}
-
-		if(count >= 5){
-			std::cerr << "Error setting state! Terminating!\n";
+		if(!SetCommState(hSerial, &dcbSerialParams)){
+			std::cerr << "Error setting state!" << std::endl;
 			CloseHandle(hSerial);
 			return INVALID_HANDLE_VALUE;
 		}
@@ -81,38 +70,38 @@ namespace gnss{
 		return hSerial;
 	}
 
-	// TODO Change to return a string instead
-	// TODO Remove std::cout
-	int readPort(HANDLE m_hSerial, int m_characters){
+	//// TODO Change to return a string instead
+	//// TODO Remove std::cout
+	//int readPort(HANDLE hSerial, int characters){
 
 
-		int const buffLen{1};
-		//char szBuff[buffLen + 1]{};
-		char szBuff{0};
-		//ZeroMemory(szBuff, buffLen + 1);
-		DWORD dwBytesRead{0};
+	//	int const buffLen{1};
+	//	//char szBuff[buffLen + 1]{};
+	//	char szBuff{0};
+	//	//ZeroMemory(szBuff, buffLen + 1);
+	//	DWORD dwBytesRead{0};
 
-		for(int i{0}; i < m_characters; ++i){
-			szBuff = 0;
-			do{
-				if(!ReadFile(m_hSerial, &szBuff, buffLen, &dwBytesRead, NULL)){
-					std::cerr << "\nError reading: " << GetLastError << std::endl;
-					CloseHandle(m_hSerial);
-					return -1;
-				}
-			} while(dwBytesRead <= 0);
+	//	for(int i{0}; i < characters; ++i){
+	//		szBuff = 0;
+	//		do{
+	//			if(!ReadFile(hSerial, &szBuff, buffLen, &dwBytesRead, NULL)){
+	//				std::cerr << "\nError reading: " << GetLastError << std::endl;
+	//				CloseHandle(hSerial);
+	//				return -1;
+	//			}
+	//		} while(dwBytesRead <= 0);
 
-			std::cout << szBuff;
+	//		std::cout << szBuff;
 
-		}
+	//	}
 
-		std::cout << std::endl;
+	//	std::cout << std::endl;
 
-		return 1;
+	//	return 1;
 
-	}
+	//}
 
-	std::string readLine(HANDLE m_hSerial){
+	std::string readLineCrLf(HANDLE hSerial){
 
 		DWORD buffLen{1};
 		char buffert{0};
@@ -124,7 +113,7 @@ namespace gnss{
 		bool crReceived{false};
 
 		do{
-			if(!ReadFile(m_hSerial, &buffert, buffLen, &bytesRead, NULL)){
+			if(!ReadFile(hSerial, &buffert, buffLen, &bytesRead, NULL)){
 				// TODO Create appropiate error for readerror
 				return "";
 			}
@@ -148,8 +137,8 @@ namespace gnss{
 		return line;
 	}
 
-	int closePort(HANDLE m_hSerial){
-		CloseHandle(m_hSerial);
+	int closePort(HANDLE hSerial){
+		CloseHandle(hSerial);
 		return 1;
 	}
 

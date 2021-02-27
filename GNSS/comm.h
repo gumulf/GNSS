@@ -15,10 +15,10 @@ namespace gnss{
 
 	HANDLE openPort(LPCWSTR portName); // TODO Add other parameters to call, such as parity, data bits, stop bits, baud rates 
 
-	int closePort(HANDLE m_hSerial);
+	int closePort(HANDLE hSerial);
 
-	int readPort(HANDLE m_hSerial, int m_characters);
+	//int readPort(HANDLE hSerial, int characters);
 
-	std::string readLine(HANDLE m_hSerial);
+	std::string readLineCrLf(HANDLE hSerial);
 
 }
