@@ -3,6 +3,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include<Windows.h>
 #include<string>
+#include<stdexcept>
 
 /* 
 *		Handling USB-connection to receiver
@@ -13,12 +14,21 @@
 
 namespace gnss{
 
-	HANDLE openPort(LPCWSTR portName); // TODO Add other parameters to call, such as parity, data bits, stop bits, baud rates 
+	HANDLE openPort(LPCWSTR port_name); // TODO Add other parameters to call, such as parity, data bits, stop bits, baud rates 
 
-	int closePort(HANDLE hSerial);
+	int closePort(HANDLE handle_serial);
 
-	//int readPort(HANDLE hSerial, int characters);
+	std::string readLineCrLf(HANDLE handle_serial);
 
-	std::string readLineCrLf(HANDLE hSerial);
+
+	class CommError: virtual public std::runtime_error{
+	private:
+		const unsigned int m_code;
+
+	public:
+		CommError();
+		CommError(const char *what, int error_code);
+		int code(void);
+	};
 
 }

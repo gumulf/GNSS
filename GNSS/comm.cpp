@@ -9,11 +9,10 @@
 
 namespace gnss{
 
-	HANDLE openPort(LPCWSTR portName){
-		HANDLE hSerial;
-		LPCWSTR port{portName};
+	HANDLE openPort(LPCWSTR port_name){
+		HANDLE handle_serial;
 
-		hSerial = CreateFile(port,
+		handle_serial = CreateFile(port_name,
 									GENERIC_READ,
 									0,
 									0,
@@ -21,35 +20,41 @@ namespace gnss{
 									FILE_ATTRIBUTE_NORMAL,
 									0);
 
-		if(hSerial == INVALID_HANDLE_VALUE){
+		if(handle_serial == INVALID_HANDLE_VALUE){
+
 			if(GetLastError() == ERROR_FILE_NOT_FOUND){
-				std::cerr << "The requested port could not be opended!" << std::endl;
+
+				CloseHandle(handle_serial);
+				throw(CommError ("File not found", 3));
+
 			} else{
-				std::cerr << "Some kind of error happened opening file!" << std::endl;
+
+				CloseHandle(handle_serial);
+				throw(CommError("Error opening file", 2));
 			}
-			CloseHandle(hSerial);
-			return INVALID_HANDLE_VALUE;
 		}
 
-		DCB dcbSerialParams{0};
+		DCB serial_parameters{0};
 
-		dcbSerialParams.DCBlength = sizeof(dcbSerialParams);
+		serial_parameters.DCBlength = sizeof(serial_parameters);
 
-		if(!GetCommState(hSerial, &dcbSerialParams)){
-			std::cerr << "Error getting state!" << std::endl;
-			CloseHandle(hSerial);
-			return INVALID_HANDLE_VALUE;
+		if(!GetCommState(handle_serial, &serial_parameters)){
+
+			CloseHandle(handle_serial);
+			throw(CommError("Error getting state", 4));
+
 		}
 
-		dcbSerialParams.BaudRate = CBR_4800;
-		dcbSerialParams.ByteSize = 8;
-		dcbSerialParams.StopBits = ONESTOPBIT;
-		dcbSerialParams.Parity = NOPARITY;
+		serial_parameters.BaudRate = CBR_4800;
+		serial_parameters.ByteSize = 8;
+		serial_parameters.StopBits = ONESTOPBIT;
+		serial_parameters.Parity = NOPARITY;
 
-		if(!SetCommState(hSerial, &dcbSerialParams)){
-			std::cerr << "Error setting state!" << std::endl;
-			CloseHandle(hSerial);
-			return INVALID_HANDLE_VALUE;
+		if(!SetCommState(handle_serial, &serial_parameters)){
+
+			CloseHandle(handle_serial);
+			throw("Error setting state", 5);
+
 		}
 
 
@@ -61,85 +66,93 @@ namespace gnss{
 		timeouts.WriteTotalTimeoutConstant = 50;
 		timeouts.WriteTotalTimeoutMultiplier = 10;
 
-		if(!SetCommTimeouts(hSerial, &timeouts)){
-			std::cerr << "Error setting timeouts!" << std::endl;
-			CloseHandle(hSerial);
-			return INVALID_HANDLE_VALUE;
+		if(!SetCommTimeouts(handle_serial, &timeouts)){
+
+			CloseHandle(handle_serial);
+			throw(CommError("Error setting timeouts", 6));
+
 		}
 
-		return hSerial;
+		return handle_serial;
 	}
 
-	//// TODO Change to return a string instead
-	//// TODO Remove std::cout
-	//int readPort(HANDLE hSerial, int characters){
+	std::string readLineCrLf(HANDLE handle_serial){
 
-
-	//	int const buffLen{1};
-	//	//char szBuff[buffLen + 1]{};
-	//	char szBuff{0};
-	//	//ZeroMemory(szBuff, buffLen + 1);
-	//	DWORD dwBytesRead{0};
-
-	//	for(int i{0}; i < characters; ++i){
-	//		szBuff = 0;
-	//		do{
-	//			if(!ReadFile(hSerial, &szBuff, buffLen, &dwBytesRead, NULL)){
-	//				std::cerr << "\nError reading: " << GetLastError << std::endl;
-	//				CloseHandle(hSerial);
-	//				return -1;
-	//			}
-	//		} while(dwBytesRead <= 0);
-
-	//		std::cout << szBuff;
-
-	//	}
-
-	//	std::cout << std::endl;
-
-	//	return 1;
-
-	//}
-
-	std::string readLineCrLf(HANDLE hSerial){
-
-		DWORD buffLen{1};
+		DWORD buffert_length{1};
 		char buffert{0};
-		DWORD bytesRead{0};
+		DWORD bytes_read{0};
 
-		std::string line{""};
+		int max_retries_reading{10};
 
-		bool lineRead{false};
-		bool crReceived{false};
+		std::string line{};
+
+		bool is_line_read{false};
+		bool is_cr_received{false};
 
 		do{
-			if(!ReadFile(hSerial, &buffert, buffLen, &bytesRead, NULL)){
-				// TODO Create appropiate error for readerror
-				return "";
-			}
-			if(bytesRead == 1){
 
-				if(!crReceived && buffert == '\r'){
-					crReceived = true;
-				} else if(crReceived && buffert == '\n'){
-					lineRead = true;
-				} else if(crReceived){
+			int count_retries_reading{0};
+
+			while(!ReadFile(handle_serial, &buffert, buffert_length, &bytes_read, NULL)){
+
+				if(count_retries_reading >= max_retries_reading){
+
+					throw(CommError("Error reading", 7));
+
+				}
+
+				++count_retries_reading;
+
+			}
+
+
+			if(bytes_read == 1){
+
+				if(!is_cr_received && buffert == '\r'){
+
+					is_cr_received = true;
+
+				} else if(is_cr_received && buffert == '\n'){
+
+					is_line_read = true;
+
+				} else if(is_cr_received){
+
 					line.clear();
-					crReceived = false;
+					is_cr_received = false;
+
 					// TODO Find out if there should be an error thrown here, or something
+
 				} else{
+
 					line.push_back(buffert);
+
 				}
 				
 			}
-		} while(!lineRead);
+		} while(!is_line_read);
 
 		return line;
 	}
 
-	int closePort(HANDLE hSerial){
-		CloseHandle(hSerial);
+	int closePort(HANDLE handle_serial){
+
+		if(handle_serial != INVALID_HANDLE_VALUE){
+
+			CloseHandle(handle_serial);
+
+		}
+
 		return 1;
+
 	}
+
+
+	CommError::CommError(): std::runtime_error("An unspecified comm error occured!"), m_code{1} {}
+
+	CommError::CommError(const char *what, int code) : std::runtime_error(what), m_code(code){}
+	
+	int CommError::code(){ return m_code; }
+
 
 }
