@@ -13,5 +13,6 @@ namespace gnss{
 
 	// Parser
 
+	void nmeaParser(std::vector < std::string > sentence);
 
 }
