@@ -45,12 +45,10 @@ namespace gnss{
 
 		while(end != std::string::npos){
 
-	
 			tokens.push_back(str.substr(start, end - start));
 
 			start = end + 1;
 			end = str.find_first_of(separators, start);
-
 		}
 
 		if(start != str.length()){

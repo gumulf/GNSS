@@ -3,8 +3,6 @@
 #include <vector>
 #include "gnss.h"
 
-// http://freenmea.net/docs
-
 namespace gnss{
 
 	bool validateChecksum(std::string sentence);
