@@ -53,7 +53,7 @@ namespace gnss{
 		if(!SetCommState(handle_serial, &serial_parameters)){
 
 			CloseHandle(handle_serial);
-			throw("Error setting state", 5);
+			throw(CommError("Error setting state", 5));
 
 		}
 
@@ -96,39 +96,27 @@ namespace gnss{
 			while(!ReadFile(handle_serial, &buffert, buffert_length, &bytes_read, NULL)){
 
 				if(count_retries_reading >= max_retries_reading){
-
 					throw(CommError("Error reading", 7));
-
 				}
 
 				++count_retries_reading;
-
 			}
 
 
 			if(bytes_read == 1){
-
 				if(!is_cr_received && buffert == '\r'){
-
 					is_cr_received = true;
-
 				} else if(is_cr_received && buffert == '\n'){
-
 					is_line_read = true;
-
 				} else if(is_cr_received){
-
 					line.clear();
 					is_cr_received = false;
 
 					// TODO Find out if there should be an error thrown here, or something
 
 				} else{
-
 					line.push_back(buffert);
-
 				}
-				
 			}
 		} while(!is_line_read);
 
@@ -138,13 +126,10 @@ namespace gnss{
 	int closePort(HANDLE handle_serial){
 
 		if(handle_serial != INVALID_HANDLE_VALUE){
-
 			CloseHandle(handle_serial);
-
 		}
 
 		return 1;
-
 	}
 
 
