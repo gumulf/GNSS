@@ -24,7 +24,13 @@
     <ClCompile Include="comm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="gnss.cpp">
+    <ClCompile Include="position.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="satellite.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fixquality.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -35,7 +41,13 @@
     <ClInclude Include="nmea.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="gnss.h">
+    <ClInclude Include="position.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="satellite.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="fixquality.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
