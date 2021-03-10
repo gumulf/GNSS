@@ -1,16 +1,22 @@
 #pragma once
+#include "position.h"
+#include "satellite.h"
+#include "fixquality.h"
 #include <string>
 #include <vector>
-#include "gnss.h"
 
 namespace gnss{
+	class Nmea{
 
-	bool validateChecksum(std::string sentence);
+	private:
+		gnss::Position m_position{};
+		gnss::FixQuality m_fix_quality{};
+		std::vector<gnss::Satellite> m_satellites{};
 
-	std::vector<std::string> tokenize(std::string str, std::string separators);
-
-	// Parser
-
-	void nmeaParser(std::vector < std::string > sentence);
-
+	public:
+		bool nmeaParser(std::string sentence); // TODO Should this be renamed? It updates the data aswell
+		gnss::Position getPosition();
+		gnss::FixQuality getFixQuality();
+		std::vector<gnss::Satellite> getSatellites();
+	};
 }
