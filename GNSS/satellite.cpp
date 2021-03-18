@@ -12,7 +12,8 @@ namespace gnss{
 		if(m_ids.count(id) == 0){
 			m_id = id;
 			m_ids.insert(id);
-		} else{
+		}
+		else{
 			throw std::invalid_argument("ID does already exist");
 		}
 	}
@@ -22,25 +23,29 @@ namespace gnss{
 		if(m_ids.count(id) == 0){
 			m_id = id;
 			m_ids.insert(id);
-		} else{
+		}
+		else{
 			throw std::invalid_argument("ID does already exist");
 		}
 
 		if(elevation <= 90){
 			m_elevation = elevation;
-		} else{
+		}
+		else{
 			throw std::invalid_argument("Elevation must be less than or equal to 90");
 		}
 
 		if(azimuth < 360){
 			m_azimuth = azimuth;
-		} else{
+		}
+		else{
 			throw std::invalid_argument("Azumuth must be less than 360");
 		}
 
 		if(snr < 100){
 			m_snr = snr;
-		} else{
+		}
+		else{
 			throw std::invalid_argument("SNR must be lower than 100");
 		}
 	}
@@ -54,7 +59,8 @@ namespace gnss{
 
 		if(elevation <= 90){
 			m_elevation = elevation;
-		} else{
+		}
+		else{
 			throw std::invalid_argument("Elevation must be less than or equal to 90");
 		}
 	}
@@ -63,7 +69,8 @@ namespace gnss{
 
 		if(azimuth < 360){
 			m_azimuth = azimuth;
-		} else{
+		}
+		else{
 			throw std::invalid_argument("Azumuth must be less than 360");
 		}
 	}
@@ -72,7 +79,8 @@ namespace gnss{
 
 		if(snr < 100){
 			m_snr = snr;
-		} else{
+		}
+		else{
 			throw std::invalid_argument("SNR must be lower than 100");
 		}
 	}

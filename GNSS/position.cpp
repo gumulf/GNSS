@@ -11,13 +11,15 @@ namespace gnss{
 
 		if(latitude >= -90.0 && latitude <= 90.0){
 			m_latitude = latitude;
-		} else{
+		}
+		else{
 			throw(std::invalid_argument("Latitude must have a value between -90.0 and 90.0"));
 		}
 
 		if(longitude >= -180.0 && longitude <= 180.0){
 			m_longitude = longitude;
-		} else{
+		}
+		else{
 			throw(std::invalid_argument("Longitude must have a value between - 180.0 - 180.0"));
 		}
 	}
@@ -54,7 +56,8 @@ namespace gnss{
 
 		if(latitude >= -90.0 && latitude <= 90.0){
 			m_latitude = latitude;
-		} else{
+		}
+		else{
 			throw(std::invalid_argument("Values outside allowed range, -90.0 - 90.0"));
 		}
 	}
@@ -62,7 +65,8 @@ namespace gnss{
 
 		if(longitude >= -180.0 && longitude <= 180.0){
 			m_longitude = longitude;
-		} else{
+		}
+		else{
 			throw(std::invalid_argument("Values outside allowed range, -180.0 - 180.0"));
 		}
 	}
