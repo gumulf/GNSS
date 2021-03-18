@@ -13,21 +13,22 @@ namespace gnss{
 		HANDLE handle_serial;
 
 		handle_serial = CreateFile(port_name,
-									GENERIC_READ,
-									0,
-									0,
-									OPEN_EXISTING,
-									FILE_ATTRIBUTE_NORMAL,
-									0);
+											GENERIC_READ,
+											0,
+											0,
+											OPEN_EXISTING,
+											FILE_ATTRIBUTE_NORMAL,
+											0);
 
 		if(handle_serial == INVALID_HANDLE_VALUE){
 
 			if(GetLastError() == ERROR_FILE_NOT_FOUND){
 
 				CloseHandle(handle_serial);
-				throw(CommError ("File not found", 3));
+				throw(CommError("File not found", 3));
 
-			} else{
+			}
+			else{
 
 				CloseHandle(handle_serial);
 				throw(CommError("Error opening file", 2));
@@ -82,50 +83,60 @@ namespace gnss{
 		char buffert{0};
 		DWORD bytes_read{0};
 
-		int max_retries_reading{10};
-
 		std::string line{};
 
 		bool is_line_read{false};
-		bool is_cr_received{false};
 
-		do{
+		int count_retries_reading_chars{0};
+		int count_retries_reading_lines{0};
 
-			int count_retries_reading{0};
+		int max_retries_reading_chars{10};
+		int max_retries_reading_lines{100};
+
+
+		while(true){
+
+			count_retries_reading_chars = 0;
 
 			while(!ReadFile(handle_serial, &buffert, buffert_length, &bytes_read, NULL)){
-
-				if(count_retries_reading >= max_retries_reading){
-					throw(CommError("Error reading", 7));
+				if(++count_retries_reading_chars > max_retries_reading_chars){
+					throw(CommError("Max retries reading chars from port exceeded!", 7));
 				}
-
-				++count_retries_reading;
+				Sleep(100);
 			}
 
+			if(bytes_read != 0){
 
-			if(bytes_read == 1){
-				if(!is_cr_received && buffert == '\r'){
-					is_cr_received = true;
-				} else if(is_cr_received && buffert == '\n'){
-					is_line_read = true;
-				} else if(is_cr_received){
+				if(!line.empty() && line.back() == '\r' && buffert == '\n'){
+					// RETURN line from function
+					return line;
+				}
+				else if((!line.empty() && line.back() == '\r') || buffert == '\n'){
+					// Either CR was the char received last round and LF is not received this round,
+					// or LF is received without an CR as the char received before it
+
 					line.clear();
-					is_cr_received = false;
 
-					// TODO Find out if there should be an error thrown here, or something
+					if(++count_retries_reading_lines > max_retries_reading_lines){
+						throw(CommError("Max retries reading lines exceeded, lines ending in only CR or LF,  not CRLF!", 8));
+					}
 
-				} else{
+				}
+				else{
+					// Add another character to the end of the line
+
 					line.push_back(buffert);
 				}
-			}
-		} while(!is_line_read);
 
-		return line;
+			}
+		}
+
 	}
+
 
 	int closePort(HANDLE handle_serial){
 
-		if(handle_serial != INVALID_HANDLE_VALUE){
+		if(handle_serial != INVALID_HANDLE_VALUE && handle_serial != NULL){
 			CloseHandle(handle_serial);
 		}
 
@@ -136,7 +147,7 @@ namespace gnss{
 	CommError::CommError(): std::runtime_error("An unspecified comm error occured!"), m_code{1} {}
 
 	CommError::CommError(const char *what, int code) : std::runtime_error(what), m_code(code){}
-	
+
 	int CommError::code(){ return m_code; }
 
 
