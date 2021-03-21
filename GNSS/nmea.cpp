@@ -10,18 +10,16 @@ namespace gnss{
 
 	// Function declarations
 
-	bool validateChecksum(std::string sentence);
+	bool isChecksumValid(std::string sentence);
 	std::vector<std::string>  tokenize(std::string str, std::string start_chars, std::string separators);
 	bool parseGga(std::vector<std::string> sentence_tokens, gnss::Position &position, gnss::FixQuality &fix_quality);
 	tm extractTime(std::string time_string);
 	double extractCoordinate(std::string coordinate_string, double lower_limit, double upper_limit);
 
 	// Parser
-	// TODO Define and implement how data is returned/updated
-
 	bool Nmea::nmeaParser(std::string sentence){
 
-		if(!validateChecksum(sentence)){
+		if(!isChecksumValid(sentence)){
 			return false;
 		}
 
@@ -33,7 +31,6 @@ namespace gnss{
 			return parseGga(sentence_tokens, m_position, m_fix_quality);
 		}
 		else{
-			// std::cout << "Parsing of type " << sentence_tokens.at(0) << " in not implemented!\n";
 			return false;
 		}
 
@@ -126,8 +123,7 @@ namespace gnss{
 
 
 	// Check the sentence for corruption by checking the checksum
-
-	bool validateChecksum(std::string sentence){
+	bool isChecksumValid(std::string sentence){
 
 		// Sentence should start with '$' or '!'.
 		size_t firstChar{sentence.find_first_of("$!")};
@@ -137,22 +133,21 @@ namespace gnss{
 			return false;
 		}
 
-		// The data is between first character, checked above, and '*',
-		// and the checksum is after the '*'.
-
-		size_t sentenceEnd{sentence.find('*')};
-		if(sentenceEnd == std::string::npos || firstChar > sentenceEnd){
+		// The data is after first character, checked above, and before '*'.
+		// The checksum is after the '*'.
+		size_t dataEnd{sentence.find('*')};
+		if(dataEnd == std::string::npos || firstChar > dataEnd){
 			return false;
 		}
 
 		// Calculation of checksum
 		unsigned char checksum{0};
-		for(size_t pos{firstChar + 1}; pos < sentenceEnd; ++pos){
+		for(size_t pos{firstChar + 1}; pos < dataEnd; ++pos){
 			checksum ^= sentence.at(pos);
 		}
 
 		// Compare calculated checksum against checksum at end of sentence (that is in hexadecimal notation)
-		if(std::stoi(sentence.substr(sentenceEnd + 1, std::string::npos), nullptr, 16) == static_cast<int>(checksum)){
+		if(std::stoi(sentence.substr(dataEnd + 1, std::string::npos), nullptr, 16) == static_cast<int>(checksum)){
 			return true;
 		}
 		else{
@@ -162,7 +157,6 @@ namespace gnss{
 	}
 
 	// Tokenize the sentence
-
 	std::vector<std::string>  tokenize(std::string str, std::string start_chars, std::string separators){
 
 		std::vector<std::string> tokens;
