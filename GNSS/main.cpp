@@ -34,12 +34,14 @@ int main(){
 	bool reading_data_ok{false};
 	bool reconnect{false};
 	int lines_read{0}, lines_to_read{0}; // lines_to_read = 0 => no limit, Ctrl+C to stop
-	int retries_opening_port{0}, max_retries_opening_port{10};
+	int retries_opening_port{0}, max_retries_opening_port{100};
 	int retries_reading_line{0}, max_retries_reading_line{10};
 	int retries_reconnecting{0}, max_retries_reconnecting{100};
 
 	do{
+
 		reconnect = false;
+
 		if(retries_reconnecting++ > max_retries_reconnecting){
 			std::cerr << "Maxium retries reconnecting reached, aborting!" << std::endl;
 			return -1;
@@ -59,7 +61,7 @@ int main(){
 			catch(gnss::CommError){
 				port_opened_ok = false;
 				gnss::closePort(port_handle);
-				Sleep(1000);
+				Sleep(100);
 			}
 		} while(!port_opened_ok);
 
@@ -82,7 +84,9 @@ int main(){
 
 				if(reading_data_ok){
 
-					++lines_read;
+					//if(lines_to_read != 0){ 
+						++lines_read; 
+					//}
 					retries_reading_line = 0;
 					retries_reconnecting = 0;
 
@@ -108,6 +112,7 @@ int main(){
 				}
 			}
 		}
+
 	} while(reconnect && (lines_read < lines_to_read || lines_to_read == 0));
 
 
