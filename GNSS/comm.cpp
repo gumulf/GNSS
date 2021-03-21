@@ -10,7 +10,7 @@
 namespace gnss{
 
 	HANDLE openPort(LPCWSTR port_name){
-		HANDLE handle_serial;
+		HANDLE handle_serial{INVALID_HANDLE_VALUE};
 
 		handle_serial = CreateFile(port_name,
 											GENERIC_READ,
@@ -42,6 +42,7 @@ namespace gnss{
 		if(!GetCommState(handle_serial, &serial_parameters)){
 
 			CloseHandle(handle_serial);
+
 			throw(CommError("Error getting state", 4));
 
 		}
@@ -89,15 +90,18 @@ namespace gnss{
 
 		int count_retries_reading_chars{0};
 		int count_retries_reading_lines{0};
+		int count_null_chars{0};
 
 		int max_retries_reading_chars{10};
-		int max_retries_reading_lines{100};
+		int max_retries_reading_lines{10};
+		int max_null_chars{50};
 
 
 		while(true){
 
 			count_retries_reading_chars = 0;
 
+			// TODO Rewrite to overlapped (async) instead
 			while(!ReadFile(handle_serial, &buffert, buffert_length, &bytes_read, NULL)){
 				if(++count_retries_reading_chars > max_retries_reading_chars){
 					throw(CommError("Max retries reading chars from port exceeded!", 7));
@@ -106,6 +110,8 @@ namespace gnss{
 			}
 
 			if(bytes_read != 0){
+
+				count_null_chars = 0;
 
 				if(!line.empty() && line.back() == '\r' && buffert == '\n'){
 					// RETURN line from function
@@ -129,18 +135,31 @@ namespace gnss{
 				}
 
 			}
+			else{
+				if(count_null_chars++ > max_null_chars){
+					throw(CommError("Max null chars count reached!", 9));
+				}
+
+			}
 		}
 
 	}
 
 
-	int closePort(HANDLE handle_serial){
+	void closePort(HANDLE handle_serial){
 
-		if(handle_serial != INVALID_HANDLE_VALUE && handle_serial != NULL){
-			CloseHandle(handle_serial);
+
+		if(handle_serial != INVALID_HANDLE_VALUE){
+			try{
+				CloseHandle(handle_serial);
+			}
+			catch(...){
+				// TODO Find a better solution than catch all exceptions
+				std::cerr << "Error closing handle!" << std::endl;
+			}
 		}
 
-		return 1;
+		return;
 	}
 
 
