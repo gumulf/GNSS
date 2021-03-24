@@ -103,6 +103,9 @@ namespace gnss{
 
 			// TODO Rewrite to overlapped (async) instead
 			while(!ReadFile(handle_serial, &buffert, buffert_length, &bytes_read, NULL)){
+
+				// TODO Maybe check GetLastError()?
+
 				if(++count_retries_reading_chars > max_retries_reading_chars){
 					throw(CommError("Max retries reading chars from port exceeded!", 7));
 				}
@@ -155,6 +158,7 @@ namespace gnss{
 			}
 			catch(...){
 				// TODO Find a better solution than catch all exceptions
+				// TODO Remove write to std::cerr
 				std::cerr << "Error closing handle!" << std::endl;
 			}
 		}

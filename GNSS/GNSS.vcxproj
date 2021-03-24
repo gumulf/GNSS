@@ -140,6 +140,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="comm.cpp" />
+    <ClCompile Include="ctrlhandler.cpp" />
     <ClCompile Include="fixquality.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="nmea.cpp" />
@@ -148,6 +149,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="comm.h" />
+    <ClInclude Include="ctrlhandler.h" />
     <ClInclude Include="fixquality.h" />
     <ClInclude Include="nmea.h" />
     <ClInclude Include="position.h" />

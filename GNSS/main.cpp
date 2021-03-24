@@ -1,3 +1,4 @@
+#include "ctrlhandler.h"
 #include "comm.h"
 #include "position.h"
 #include "satellite.h"
@@ -20,14 +21,19 @@
 */
 
 int main(){
+	
+	// Initiation
+	HANDLE port_handle{INVALID_HANDLE_VALUE};
 
+	if(!gnss::activateCtrlHandler(&port_handle)){
+		std::cerr << "Could not set CtrlHandler" << std::endl;
+	}
 
 	// Get connection info 
 	// TODO Make interactive / read from call / read from config file. Including bitrate, parity bit et.c.
 	LPCWSTR port{L"\\\\.\\COM3"};
 
 	// Establish connection
-	HANDLE port_handle{INVALID_HANDLE_VALUE};
 
 	gnss::Nmea nmea{};
 
