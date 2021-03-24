@@ -6,5 +6,6 @@
 namespace gnss{
 
 	bool activateCtrlHandler(HANDLE *handle);
+	bool deactivateCtrlHandler();
 
 }

@@ -1,5 +1,4 @@
 #include "ctrlhandler.h"
-#include <stdlib.h>
 #include "comm.h"
 
 namespace gnss{
@@ -23,5 +22,10 @@ namespace gnss{
 	bool activateCtrlHandler(HANDLE *handle){
 		m_handle = handle;
 		return SetConsoleCtrlHandler(handler, true);
+	}
+
+	bool deactivateCtrlHandler(){
+		*m_handle = INVALID_HANDLE_VALUE;
+		return SetConsoleCtrlHandler(handler, false);
 	}
 }

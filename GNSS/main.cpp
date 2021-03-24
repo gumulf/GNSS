@@ -90,12 +90,9 @@ int main(){
 
 				if(reading_data_ok){
 
-					//if(lines_to_read != 0){ 
-						++lines_read; 
-					//}
+					++lines_read;
 					retries_reading_line = 0;
 					retries_reconnecting = 0;
-
 
 					// Parse data	
 					if(nmea.nmeaParser(line)){
