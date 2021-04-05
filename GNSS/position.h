@@ -10,6 +10,9 @@ namespace gnss{
 		double m_meters_over_msl{0.0};  // Hight over mean sealevel
 		double m_meters_over_ellipsoid{0.0}; // Hight over Ellipsoid
 		tm m_utc_time{NULL};
+		bool m_is_position_valid{false};
+		bool m_is_hight_valid{false};
+		bool m_is_time_valid{false};
 
 	public:
 		Position();
@@ -18,17 +21,20 @@ namespace gnss{
 		Position(double latitude, double longitude, double meters_over_msl, double meters_over_ellipsoid);
 		Position(double latitude, double longitude, double meters_over_msl, double meters_over_ellipsoid, tm utc_time);
 
+		void setPosition(double latitude, double longitude);
+		void setHeight(double meters_over_msl, double meters_over_ellipsoid);
+		void setUtcTime(tm utc_time);
+
+		bool isPositionValid();
+		bool isHightValid();
+		bool isTimeValid();
+		bool isAllValid();
+
 		double getLatitude();
 		double getLongitude();
 		double getMetersOverMsl();
 		double getMetersOverEllipsoid();
 		tm getUtcTime();
-
-		void setLatitude(double latitude);
-		void setLongitude(double longitude);
-		void setMetersOverMsl(double meters_over_msl);
-		void setMetersOverEllipsoid(double meters_over_ellipsoid);
-		void setUtcTime(tm utc_time);
 
 	};
 }

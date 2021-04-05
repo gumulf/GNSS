@@ -7,6 +7,9 @@
 
 #include <iostream>
 #include <iomanip>
+#include <thread>
+#include <mutex>
+#include <vector>
 
 
 /*
@@ -20,32 +23,68 @@
 
 */
 
+int connectAndRead(LPCWSTR port, gnss::Nmea &nmea, gnss::ShutdownSequence &sq);
+void presentData(gnss::Nmea &nmea, gnss::ShutdownSequence &sq);
+std::mutex cout_mx;
+
+
 int main(){
 	
 	// Initiation
-	HANDLE port_handle{INVALID_HANDLE_VALUE};
+	gnss::ShutdownSequence sq;
+	gnss::Nmea nmea;
 
-	if(!gnss::activateCtrlHandler(&port_handle)){
+	if(!gnss::activateCtrlHandler(std::ref(sq))){
 		std::cerr << "Could not set CtrlHandler" << std::endl;
+		return 0;
 	}
 
 	// Get connection info 
 	// TODO Make interactive / read from call / read from config file. Including bitrate, parity bit et.c.
 	LPCWSTR port{L"\\\\.\\COM3"};
 
-	// Establish connection
 
-	gnss::Nmea nmea{};
+	std::thread reading(connectAndRead, port, std::ref(nmea), std::ref(sq));
+	std::thread presenting(presentData, std::ref(nmea), std::ref(sq));
 
-	bool reading_data_ok{false};
-	bool reconnect{false};
+
+
+	// Update(/get?) position data
+
+	// Present position data
+
+	// Shutdown program
+
+	sq.waitForActivation();
+	{
+		std::lock_guard<std::mutex> cout_lock(cout_mx);
+		std::cout << "\n\n === Program shutting down! === \n\n\n";
+	}
+	presenting.join();
+	reading.join();
+
+	return 0;
+
+}
+
+
+int connectAndRead(LPCWSTR port, gnss::Nmea &nmea, gnss::ShutdownSequence &sq){
+
 	int lines_read{0}, lines_to_read{0}; // lines_to_read = 0 => no limit, Ctrl+C to stop
 	int retries_opening_port{0}, max_retries_opening_port{100};
 	int retries_reading_line{0}, max_retries_reading_line{10};
 	int retries_reconnecting{0}, max_retries_reconnecting{100};
 
-	do{
+	HANDLE port_handle{INVALID_HANDLE_VALUE};
+	//gnss::Nmea nmea{};
+	bool reading_data_ok{false};
+	bool reconnect{true};
 
+	while(reconnect && (lines_read < lines_to_read || lines_to_read == 0) && !sq.isActivated()){
+
+		/***************************************************************************************************/
+
+	// Establish connection
 		reconnect = false;
 
 		if(retries_reconnecting++ > max_retries_reconnecting){
@@ -53,9 +92,11 @@ int main(){
 			return -1;
 		}
 
+		/***************************************************************************************************/
+
 		bool port_opened_ok{false};
 
-		do{
+		while(!port_opened_ok && !sq.isActivated()){
 			if(retries_opening_port++ > max_retries_opening_port){
 				std::cerr << "Maximum retries reached while trying to open port, aborting!" << std::endl;
 				return -1;
@@ -66,18 +107,18 @@ int main(){
 			}
 			catch(gnss::CommError){
 				port_opened_ok = false;
-				gnss::closePort(port_handle);
 				Sleep(100);
 			}
-		} while(!port_opened_ok);
+		};
 
+		/***************************************************************************************************/
 
 		// Read data from "GPS"	
-		while((lines_read < lines_to_read || lines_to_read == 0) && !reconnect){
+		while((lines_read < lines_to_read || lines_to_read == 0) && !reconnect && !sq.isActivated()){ // lines_to_read = 0 => no limit, Ctrl+C to stop
 
 			retries_reading_line = 0;
 
-			while(!reading_data_ok && !reconnect){
+			while(!reading_data_ok && !reconnect && !sq.isActivated()){
 				std::string line{};
 
 				try{
@@ -96,12 +137,18 @@ int main(){
 
 					// Parse data	
 					if(nmea.nmeaParser(line)){
-						std::cout << "Parsed OK:   ";
-						std::cout << line << "\n";
-					}
-					else{
-						std::cout << "Not parsed:  ";
-						std::cout << line << "\n";
+					//	{
+					//		std::lock_guard<std::mutex> cout_lock(cout_mx);
+					//		std::cout << "Parsed OK:   ";
+					//		std::cout << line << "\n";
+					//	}
+					//}
+					//else{
+					//	{
+					//		std::lock_guard<std::mutex> cout_lock(cout_mx);
+					//		std::cout << "Not parsed:  ";
+					//		std::cout << line << "\n";
+					//	}
 					}
 					reading_data_ok = false;
 
@@ -110,23 +157,53 @@ int main(){
 					if(++retries_reading_line >= max_retries_reading_line){
 						gnss::closePort(port_handle);
 						reconnect = true;
-						Sleep(1000);
+						Sleep(500);
 					}
 				}
 			}
+
+			/***************************************************************************************************/
+
 		}
 
-	} while(reconnect && (lines_read < lines_to_read || lines_to_read == 0));
-
-
-	// Update(/get?) position data
-
-	// Present position data
+	};
 
 	// Close connection
-
 	gnss::closePort(port_handle);
-
 	return 0;
+}
+
+void presentData(gnss::Nmea &nmea, gnss::ShutdownSequence &sq){
+
+	while(!sq.isActivated()){
+		gnss::Position pos{nmea.getPosition()};
+		gnss::FixQuality fq{nmea.getFixQuality()};
+		std::vector<gnss::Satellite> sat{nmea.getSatellites()};
+		tm utc_time = pos.getUtcTime();
+
+		const int buf_size{10};
+		char utc_time_buf[buf_size];
+		strftime(utc_time_buf, buf_size, "%T", &utc_time);
+			
+
+		if(fq.getFixMode() == gnss::FixQuality::FixType::invalid){
+			{
+				std::lock_guard<std::mutex> cout_lock(cout_mx);
+				std::cout << utc_time_buf << " - ";
+				std::cout << "Position fix not available!\n";
+
+			}
+		}
+		else{
+			{
+				std::lock_guard<std::mutex> cout_lock(cout_mx);
+				std::cout << utc_time_buf << " - ";
+				std::cout << std::fixed << std::setprecision(5);
+				std::cout << "Latitude: " << pos.getLatitude() << " Longitude: " << pos.getLongitude() << "\n";
+			}
+		}
+		Sleep(1000);
+	}
 
 }
+

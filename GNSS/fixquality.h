@@ -22,11 +22,14 @@ namespace gnss{
 		void setFixQuality(FixType fix_mode, unsigned int number_of_satellites_used, double hdop);
 		void setFixQuality(FixType fix_mode, unsigned int number_of_satellites_used, double pdop, double hdop, double vdop);
 
+		void invalidateFix();
+
 		FixType getFixMode();
 		unsigned int getNumberOfSatellitesUsed();
 		double getPdop();
 		double getHdop();
 		double getVdop();
+		bool isValid();
 
 	};
 }

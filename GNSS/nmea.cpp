@@ -4,11 +4,9 @@
 #include <stdexcept>
 
 
-#include <iostream> // TODO Remove after initial testing and developemnt
-
 namespace gnss{
 
-	// Function declarations
+	// Declarations of local functions
 
 	bool isChecksumValid(std::string sentence);
 	std::vector<std::string>  tokenize(std::string str, std::string start_chars, std::string separators);
@@ -24,11 +22,27 @@ namespace gnss{
 		}
 
 		std::vector<std::string> sentence_tokens{tokenize(sentence, "$!", ",*")};
-
 		std::string sentenceType{sentence_tokens.front().substr(3, 3)};
 
 		if(sentenceType == "GGA"){
-			return parseGga(sentence_tokens, m_position, m_fix_quality);
+			gnss::Position pos{};
+			gnss::FixQuality fq{};
+
+			bool parse_result{parseGga(sentence_tokens, std::ref(pos), std::ref(fq))};
+
+			if(parse_result){
+
+				{
+					std::lock_guard<std::mutex> pos_lock(m_pos_mx);
+					m_position = pos;
+				}
+				{
+					std::lock_guard<std::mutex> fix_lock(m_fix_mx);
+					m_fix_quality = fq;
+				}
+			}
+
+			return parse_result;
 		}
 		else{
 			return false;
@@ -36,9 +50,20 @@ namespace gnss{
 
 	}
 
-	gnss::Position Nmea::getPosition(){ return m_position; }
-	gnss::FixQuality Nmea::getFixQuality(){ return m_fix_quality; }
-	std::vector<gnss::Satellite> Nmea::getSatellites(){ return m_satellites; }
+	gnss::Position Nmea::getPosition(){ 
+		std::lock_guard<std::mutex> pos_lock(m_pos_mx);
+		return m_position;
+	}
+
+	gnss::FixQuality Nmea::getFixQuality(){
+		std::lock_guard<std::mutex> fix_lock(m_fix_mx);
+		return m_fix_quality;
+	}
+
+	std::vector<gnss::Satellite> Nmea::getSatellites(){
+		std::lock_guard<std::mutex> sat_lock(m_sat_mx);
+		return m_satellites;
+	}
 
 
 	/**********************************************************************************/
@@ -64,6 +89,7 @@ namespace gnss{
 				try{
 					double latitude{extractCoordinate(sentence_tokens.at(2), -90.0, 90.0)};
 					double longitude{extractCoordinate(sentence_tokens.at(4), -180.0, 180.0)};
+					current_position.setPosition(latitude, longitude);
 				}
 				catch(std::out_of_range){
 					return false;
@@ -74,39 +100,32 @@ namespace gnss{
 				catch(...){ throw; }
 
 				double altitudeMsl{std::stod(sentence_tokens.at(9))};
-
-				// This should not be anything other than in meters, but just in case
-				if(sentence_tokens.at(10) == "M" || sentence_tokens.at(10) == "m"){
-					current_position.setMetersOverMsl(altitudeMsl);
-
-				}
-				else{
-					return false;
-				}
-
 				double altitudeEllipsoid{std::stod(sentence_tokens.at(9)) + std::stod(sentence_tokens.at(11))};
 
 				// This should not be anything other than in meters, but just in case
-				if(sentence_tokens.at(12) == "M" || sentence_tokens.at(12) == "m"){
-					current_position.setMetersOverEllipsoid(altitudeEllipsoid);
+				if((sentence_tokens.at(10) == "M" || sentence_tokens.at(10) == "m") && (sentence_tokens.at(12) == "M" || sentence_tokens.at(12) == "m")){
+					current_position.setHeight(altitudeMsl, altitudeEllipsoid);
 				}
 				else{
 					return false;
 				}
 
-				position = current_position;
+				// TODO Needs to be atomic -->
+				position = current_position; 
 
 				fix_quality.setFixQuality(
 					gnss::FixQuality::FixType::valid,
 					static_cast<unsigned int>(std::stoi(sentence_tokens.at(7))), // Satellites used for fix
 					std::stod(sentence_tokens.at(8))); // hdop
 
+				// <--
+
 				return true;
-
-
 			}
 			else{
-				return false; // Fixation not available!
+				// Fixation not available!
+				// TODO, set position to invalid???
+				return false; 
 			}
 
 		}

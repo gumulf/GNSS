@@ -4,7 +4,8 @@
 // https://ds.opdenbrouw.nl/micprg/pdf/serial-win.pdf
 
 #include "comm.h"
-#include<iostream>
+
+#include<iostream> // TODO Remove this 
 
 
 namespace gnss{
@@ -60,13 +61,20 @@ namespace gnss{
 		}
 
 
-		COMMTIMEOUTS timeouts{0};
+		// If there are bytes in the input buffer, return immediately with them
+		// If there are no bytes in the input buffer, wait until a byte arrives and the return with it
+		// It no bytes arrive within ReadTotalTimeoutConstant (=1000) milliseconds, ReadFile times out
+		// 		timeouts.ReadIntervalTimeout = MAXDWORD;
+		// 		timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
+		// 		timeouts.ReadTotalTimeoutConstant = 1000;
 
-		timeouts.ReadIntervalTimeout = 50;
-		timeouts.ReadTotalTimeoutConstant = 50;
-		timeouts.ReadTotalTimeoutMultiplier = 10;
-		timeouts.WriteTotalTimeoutConstant = 50;
+		COMMTIMEOUTS timeouts{};
+
+		timeouts.ReadIntervalTimeout = MAXDWORD;
+		timeouts.ReadTotalTimeoutMultiplier = MAXDWORD;
+		timeouts.ReadTotalTimeoutConstant = 1000;
 		timeouts.WriteTotalTimeoutMultiplier = 10;
+		timeouts.WriteTotalTimeoutConstant = 50;
 
 		if(!SetCommTimeouts(handle_serial, &timeouts)){
 
@@ -88,25 +96,25 @@ namespace gnss{
 
 		bool is_line_read{false};
 
-		int count_retries_reading_chars{0};
-		int count_retries_reading_lines{0};
-		int count_null_chars{0};
+		int retries_reading_chars_count{0};
+		int retries_reading_lines_count{0};
+		int read_timeouts_count{0};
 
 		int max_retries_reading_chars{10};
 		int max_retries_reading_lines{10};
-		int max_null_chars{50};
+		int max_read_timeouts{50};
 
 
 		while(true){
 
-			count_retries_reading_chars = 0;
+			retries_reading_chars_count = 0;
 
 			// TODO Rewrite to overlapped (async) instead
 			while(!ReadFile(handle_serial, &buffert, buffert_length, &bytes_read, NULL)){
 
 				// TODO Maybe check GetLastError()?
 
-				if(++count_retries_reading_chars > max_retries_reading_chars){
+				if(++retries_reading_chars_count > max_retries_reading_chars){
 					throw(CommError("Max retries reading chars from port exceeded!", 7));
 				}
 				Sleep(100);
@@ -114,7 +122,7 @@ namespace gnss{
 
 			if(bytes_read != 0){
 
-				count_null_chars = 0;
+				read_timeouts_count = 0;
 
 				if(!line.empty() && line.back() == '\r' && buffert == '\n'){
 					// RETURN line from function
@@ -126,7 +134,7 @@ namespace gnss{
 
 					line.clear();
 
-					if(++count_retries_reading_lines > max_retries_reading_lines){
+					if(++retries_reading_lines_count > max_retries_reading_lines){
 						throw(CommError("Max retries reading lines exceeded, lines ending in only CR or LF,  not CRLF!", 8));
 					}
 
@@ -139,8 +147,9 @@ namespace gnss{
 
 			}
 			else{
-				if(count_null_chars++ > max_null_chars){
-					throw(CommError("Max null chars count reached!", 9));
+
+				if(read_timeouts_count++ > max_read_timeouts){
+					throw(CommError("Max read timeouts count reached!", 9));
 				}
 
 			}
@@ -150,7 +159,6 @@ namespace gnss{
 
 
 	void closePort(HANDLE handle_serial){
-
 
 		if(handle_serial != INVALID_HANDLE_VALUE){
 			try{
