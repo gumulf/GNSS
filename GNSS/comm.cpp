@@ -11,27 +11,27 @@
 namespace gnss{
 
 	HANDLE openPort(LPCWSTR port_name){
-		HANDLE handle_serial{INVALID_HANDLE_VALUE};
+		HANDLE port_handle{INVALID_HANDLE_VALUE};
 
-		handle_serial = CreateFile(port_name,
-											GENERIC_READ,
+		port_handle = CreateFile(port_name,
+											GENERIC_READ|GENERIC_WRITE,
 											0,
 											0,
 											OPEN_EXISTING,
-											FILE_ATTRIBUTE_NORMAL,
+											FILE_FLAG_OVERLAPPED,               //FILE_ATTRIBUTE_NORMAL,
 											0);
 
-		if(handle_serial == INVALID_HANDLE_VALUE){
+		if(port_handle == INVALID_HANDLE_VALUE){
 
 			if(GetLastError() == ERROR_FILE_NOT_FOUND){
 
-				CloseHandle(handle_serial);
+				CloseHandle(port_handle);
 				throw(CommError("File not found", 3));
 
 			}
 			else{
 
-				CloseHandle(handle_serial);
+				CloseHandle(port_handle);
 				throw(CommError("Error opening file", 2));
 			}
 		}
@@ -40,9 +40,9 @@ namespace gnss{
 
 		serial_parameters.DCBlength = sizeof(serial_parameters);
 
-		if(!GetCommState(handle_serial, &serial_parameters)){
+		if(!GetCommState(port_handle, &serial_parameters)){
 
-			CloseHandle(handle_serial);
+			CloseHandle(port_handle);
 
 			throw(CommError("Error getting state", 4));
 
@@ -53,9 +53,9 @@ namespace gnss{
 		serial_parameters.StopBits = ONESTOPBIT;
 		serial_parameters.Parity = NOPARITY;
 
-		if(!SetCommState(handle_serial, &serial_parameters)){
+		if(!SetCommState(port_handle, &serial_parameters)){
 
-			CloseHandle(handle_serial);
+			CloseHandle(port_handle);
 			throw(CommError("Error setting state", 5));
 
 		}
@@ -76,25 +76,24 @@ namespace gnss{
 		timeouts.WriteTotalTimeoutMultiplier = 10;
 		timeouts.WriteTotalTimeoutConstant = 50;
 
-		if(!SetCommTimeouts(handle_serial, &timeouts)){
+		if(!SetCommTimeouts(port_handle, &timeouts)){
 
-			CloseHandle(handle_serial);
+			CloseHandle(port_handle);
 			throw(CommError("Error setting timeouts", 6));
 
 		}
 
-		return handle_serial;
+		return port_handle;
 	}
 
-	std::string readLineCrLf(HANDLE handle_serial){
+	std::string readLineCrLf(HANDLE handle_serial, ShutdownSequence &sq){
 
 		DWORD buffert_length{1};
 		char buffert{0};
 		DWORD bytes_read{0};
 
 		std::string line{};
-
-		bool is_line_read{false};
+		bool line_read{false};
 
 		int retries_reading_chars_count{0};
 		int retries_reading_lines_count{0};
@@ -105,56 +104,126 @@ namespace gnss{
 		int max_read_timeouts{50};
 
 
-		while(true){
+		while(!line_read && !sq.isActivated()){
 
 			retries_reading_chars_count = 0;
 
-			// TODO Rewrite to overlapped (async) instead
-			while(!ReadFile(handle_serial, &buffert, buffert_length, &bytes_read, NULL)){
+			OVERLAPPED overlapped_read{0};
+			overlapped_read.Offset = 0;
+			overlapped_read.OffsetHigh = 0;
+			overlapped_read.hEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
 
-				// TODO Maybe check GetLastError()?
+			bool read_char{false};
 
-				if(++retries_reading_chars_count > max_retries_reading_chars){
-					throw(CommError("Max retries reading chars from port exceeded!", 7));
-				}
-				Sleep(100);
-			}
+			SetCommMask(handle_serial, EV_RXCHAR);
 
-			if(bytes_read != 0){
+			// TODO Cleanup this mess ...
 
-				read_timeouts_count = 0;
+			while(!read_char && !sq.isActivated()){
 
-				if(!line.empty() && line.back() == '\r' && buffert == '\n'){
-					// RETURN line from function
-					return line;
-				}
-				else if((!line.empty() && line.back() == '\r') || buffert == '\n'){
-					// Either CR was the char received last round and LF is not received this round,
-					// or LF is received without an CR as the char received before it
+				if(!ReadFile(handle_serial, &buffert, 1, NULL, &overlapped_read)){
 
-					line.clear();
+					DWORD last_error_read_file = GetLastError();
 
-					if(++retries_reading_lines_count > max_retries_reading_lines){
-						throw(CommError("Max retries reading lines exceeded, lines ending in only CR or LF,  not CRLF!", 8));
+					if(last_error_read_file == ERROR_IO_PENDING){
+						// Async read pending
+
+						while(!read_char && !sq.isActivated()){
+
+							if(GetOverlappedResultEx(handle_serial, &overlapped_read, &bytes_read, 5000, FALSE)){
+								// Returned, check if read byte
+								if(overlapped_read.InternalHigh == 1){
+									read_char = true;
+								}
+
+							}
+							else{
+								DWORD last_error_get_result = GetLastError();
+
+								if(last_error_get_result == WAIT_TIMEOUT){
+									// Timeout occured 
+									if(read_timeouts_count++ > max_read_timeouts){
+										CancelIo(handle_serial);
+										throw(CommError("Max read timeouts count reached!", 9));
+									}
+								}
+								else if(last_error_get_result == ERROR_IO_INCOMPLETE){
+									// dwMilliseconds is zero and the operation is still in progress, 
+
+
+								}
+								else if(last_error_get_result == WAIT_IO_COMPLETION){
+									// dwMilliseconds is nonzero, and an I/O completion routine or APC is queued
+
+								}
+								else{
+									// Why are we here???
+									if(++retries_reading_chars_count > max_retries_reading_chars){
+										CancelIo(handle_serial);
+										throw(CommError("Max retries reading chars from port exceeded!", 7));
+									}
+									Sleep(100);
+								}
+							}
+						}
 					}
+					else{
+						if(++retries_reading_chars_count > max_retries_reading_chars){
+							CancelIo(handle_serial);
+							throw(CommError("Max retries reading chars from port exceeded!", 7));
+						}
+						Sleep(100);
 
+					}
 				}
 				else{
-					// Add another character to the end of the line
 
-					line.push_back(buffert);
+					// Read syncro
+					if(overlapped_read.InternalHigh == 1){
+						bytes_read = true;
+					}
+					else{
+						if(++retries_reading_chars_count > max_retries_reading_chars){
+							CancelIo(handle_serial);
+							throw(CommError("Max retries reading chars from port exceeded!", 7));
+						}
+					}
 				}
+			}
 
+			// Check if program is shutting down
+			if(sq.isActivated()){
+				CancelIo(handle_serial);
+				return "";
+			}
+
+
+			// Time to read byte
+			read_timeouts_count = 0;
+			retries_reading_chars_count = 0;
+
+			if(!line.empty() && line.back() == '\r' && buffert == '\n'){
+				retries_reading_lines_count = 0; // Just for clearity
+				line_read = true;
+			}
+			else if((!line.empty() && line.back() == '\r') || buffert == '\n'){
+				// Either CR was the char received last round and LF is not received this round,
+				// or LF is received without an CR as the char received before it
+
+				line.clear();
+
+				if(++retries_reading_lines_count > max_retries_reading_lines){
+					throw(CommError("Max retries reading lines exceeded, lines ending in only CR or LF,  not CRLF!", 8));
+				}
 			}
 			else{
-
-				if(read_timeouts_count++ > max_read_timeouts){
-					throw(CommError("Max read timeouts count reached!", 9));
-				}
-
+				// Add another character to the end of the line
+				line.push_back(buffert);
 			}
+
 		}
 
+		return line;
 	}
 
 

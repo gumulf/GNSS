@@ -1,9 +1,10 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
-#include<Windows.h>
-#include<string>
-#include<stdexcept>
+#include <Windows.h>
+#include <string>
+#include <stdexcept>
+#include "ctrlhandler.h"
 
 /* 
 *		Handling USB-connection to receiver
@@ -18,7 +19,7 @@ namespace gnss{
 
 	void closePort(HANDLE handle_serial);
 
-	std::string readLineCrLf(HANDLE handle_serial);
+	std::string readLineCrLf(HANDLE handle_serial, gnss::ShutdownSequence &sq);
 
 
 	class CommError: virtual public std::runtime_error{
