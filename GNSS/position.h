@@ -36,5 +36,8 @@ namespace gnss{
 		double getMetersOverEllipsoid();
 		tm getUtcTime();
 
+		double distanceOnEarthSurface(const Position other);
+
+
 	};
 }

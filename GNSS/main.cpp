@@ -122,7 +122,7 @@ int connectAndRead(LPCWSTR port, gnss::Nmea &nmea, gnss::ShutdownSequence &sq){
 				std::string line{};
 
 				try{
-					line = gnss::readLineCrLf(port_handle);
+					line = gnss::readLineCrLf(port_handle, std::ref(sq));
 					reading_data_ok = true;
 				}
 				catch(gnss::CommError){
@@ -136,20 +136,8 @@ int connectAndRead(LPCWSTR port, gnss::Nmea &nmea, gnss::ShutdownSequence &sq){
 					retries_reconnecting = 0;
 
 					// Parse data	
-					if(nmea.nmeaParser(line)){
-					//	{
-					//		std::lock_guard<std::mutex> cout_lock(cout_mx);
-					//		std::cout << "Parsed OK:   ";
-					//		std::cout << line << "\n";
-					//	}
-					//}
-					//else{
-					//	{
-					//		std::lock_guard<std::mutex> cout_lock(cout_mx);
-					//		std::cout << "Not parsed:  ";
-					//		std::cout << line << "\n";
-					//	}
-					}
+					nmea.nmeaParser(line);
+
 					reading_data_ok = false;
 
 				}
@@ -175,6 +163,9 @@ int connectAndRead(LPCWSTR port, gnss::Nmea &nmea, gnss::ShutdownSequence &sq){
 
 void presentData(gnss::Nmea &nmea, gnss::ShutdownSequence &sq){
 
+	gnss::Position previous_position{};
+	double distance{0.0};
+
 	while(!sq.isActivated()){
 		gnss::Position pos{nmea.getPosition()};
 		gnss::FixQuality fq{nmea.getFixQuality()};
@@ -195,11 +186,19 @@ void presentData(gnss::Nmea &nmea, gnss::ShutdownSequence &sq){
 			}
 		}
 		else{
+			if(previous_position.isPositionValid()){
+				distance = pos.distanceOnEarthSurface(previous_position);
+			}
+			else{
+				previous_position = pos;
+			}
 			{
 				std::lock_guard<std::mutex> cout_lock(cout_mx);
 				std::cout << utc_time_buf << " - ";
 				std::cout << std::fixed << std::setprecision(5);
-				std::cout << "Latitude: " << pos.getLatitude() << " Longitude: " << pos.getLongitude() << "\n";
+				std::cout << "Lat: " << pos.getLatitude() << " Long: " << pos.getLongitude();
+				std::cout << std::setprecision(1);
+				std::cout << " - Dist to start: " << distance << " m\n";
 			}
 		}
 		Sleep(1000);
